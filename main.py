@@ -1,26 +1,25 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd 
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
-# read in three columns from the dataset
+# Organize and scale prostate cancer data 
+
+# read data in from the txt file
 df = pd.read_csv('./prostatedata.txt', delimiter = "\t")
-df = pd.DataFrame(df, columns = ['lcavol','lweight','age','lbph','svi','lcp','gleason','pgg45', 'lpsa'])
 
-# convert to numpy array
-data_prostate = df.to_numpy()
+# separate into inputs and outputs 
+x = pd.DataFrame(df, columns = ['lcavol','lweight','age','lbph','svi','lcp','gleason','pgg45'])
+y = pd.DataFrame(df, columns = ['lpsa'])
 
-# test 80%
-ntrain = 78
-data_train = data_prostate[:ntrain]
-print("train",data_train)
-#val 10%
-nval = 9
-data_val = data_prostate[ntrain:ntrain+nval]
-print("val",data_val)
-#test 10%
-ntest = 9
-data_test = data_prostate[ntrain+nval:]
-print("test",data_test)
+# scale features -- standard scaling 
+ss = StandardScaler()
+data_scaled = ss.fit_transform(x)
+
+# split data into 80% train, 10% validate, 10% train 
+train_x, rest_x, train_y, rest_y = train_test_split(x, y, test_size = 0.2) 
+val_x, test_x, val_y, test_y = train_test_split(rest_x, rest_y, test_size = 0.5)
 
 # Replicate the analysis from chapter 3 of this dataset. Divide your data into roughly 80% train, 10% validation, 
 # 10% test. You must keep this split for all 3 parts of this assignment in order to compare the methods fairly. 
