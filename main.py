@@ -75,7 +75,7 @@ beta_hat = train_data(train_x, train_y)
 y_hat = test_data(test_x, beta_hat)
 mse = get_MSE(test_y, y_hat)
 
-print("Mean squared error: ", mse)
+#print("Mean squared error: ", mse)
 
 # Get correlation coefficients
 
@@ -94,9 +94,9 @@ table1_data = {' ': ['lweight', 'age', 'lbph', 'svi', 'lcp', 'gleason', 'pgg45']
      }
 
 table1 = pd.DataFrame(data=table1_data)
-table1
+print(table1)
 
-# Std errors and Z scores
+#Std errors and Z scores
 
 # do we use train or test for this? 
 var_hat = est_var_hat(train_y, y_hat, train_x) 
@@ -104,13 +104,60 @@ diag_vals = np.diagonal(np.linalg.inv(train_x.T @ train_x))
 std_errs = get_std_errors(var_hat, diag_vals)
 z_scores = get_z_scores(beta_hat, std_errs) 
 
-# Table 3.2 with beta_hat, std_errs, z_scores
+# # Table 3.2 with beta_hat, std_errs, z_scores
 
-table2_data = {'Term': ['intercept', 'lcavol', 'lweight', 'age', 'lbph', 'svi', 'lcp', 'gleason', 'pgg45'],\
-      'Coefficient': [beta_hat[0], beta_hat[1], beta_hat[2], beta_hat[3], beta_hat[4], beta_hat[5], beta_hat[6], beta_hat[7], beta_hat[8]],\
-      'Std. Error': [std_errs[0], std_errs[1], std_errs[2], std_errs[3], std_errs[4], std_errs[5], std_errs[6], std_errs[7], std_errs[8]],\
-      'Z Score': [z_scores[0], z_scores[1], z_scores[2], z_scores[3], z_scores[4], z_scores[5], z_scores[6], z_scores[7], z_scores[8]]\
-     }
+# table2_data = {'Term': ['intercept', 'lcavol', 'lweight', 'age', 'lbph', 'svi', 'lcp', 'gleason', 'pgg45'],\
+#       'Coefficient': [beta_hat[0], beta_hat[1], beta_hat[2], beta_hat[3], beta_hat[4], beta_hat[5], beta_hat[6], beta_hat[7], beta_hat[8]],\
+#       'Std. Error': [std_errs[0], std_errs[1], std_errs[2], std_errs[3], std_errs[4], std_errs[5], std_errs[6], std_errs[7], std_errs[8]],\
+#       'Z Score': [z_scores[0], z_scores[1], z_scores[2], z_scores[3], z_scores[4], z_scores[5], z_scores[6], z_scores[7], z_scores[8]]\
+#      }
 
-table2 = pd.DataFrame(data=table2_data)
-table2
+# table2 = pd.DataFrame(data=table2_data)
+# table2
+
+
+# b) Ridge regression. You must also code this one by hand(eq 3.44 to find the betas). 
+
+
+#ridhge regression shrinks coeffs by imposing penalty on size, penalty on colinearity of events
+#ridge coeffs minimize penalized residual sum 
+
+def get_b_ridge(X, lamb, y):
+  #I is the pxp identity matrix
+  #as lambda increases, b_hat gets smaller
+  b_hat_ridge = np.linalg.inv(X.T @ X + lamb* np.identity(X.shape[1])) @ X.T @ y # eq 3.44
+  #above func penalizes b_0 in identity, but we get b_0 (y-int) like so
+  b_0 = np.mean(y) #pg 64
+  return b_0, b_hat_ridge
+
+def get_y_hat_ridge(b_0, b_hat_ridge, X):
+  y_hat_ridge = b_0 + X @ b_hat_ridge
+  return y_hat_ridge
+
+
+#Select the optimal value of Lambda by cross-validation using the validation dataset. Report the mean squared error on the test dataset, 
+# using the best lambda you found on the validation set. DO NOT USE THE TEST DATASET TO CHOOSE LAMBDA. 
+#lambdas start from 1 to 5000, 0 doesn't make sense cuz then it'd just be plain lin reg
+lambs = np.linspace(1,5000,10)
+error = []
+#will sweep lambda to find the optimal value that fits data purrfectly,,, how to vectorize?
+for i in lambs:
+    b_0, b_hat_ridge = get_b_ridge(train_x, i, train_y)
+    y_hat = get_y_hat_ridge(b_0, b_hat_ridge, val_x)
+    mse = get_MSE(val_y, y_hat)
+    print(mse)
+    #error.append(get_MSE(val_y, y_hat))
+
+# min_mse = min(error)
+# min_mse_ind = error.index(min_mse)
+# op_lamb = lambs[min_mse_ind]
+
+#print(error)
+
+# #Plot a ridge plot similar to figure 3.8, but you can just sweep the lambda parameter (you don't have to scale it to degrees of freedom).
+# fig, ax = plt.subplots(1,1)
+# ax.plot(np.squeeze(lambs), np.squeeze(b_hat_ridge))
+# ax.set_xlabel('Lambda')
+# ax.set_ylabel('Coefficients')
+# ax.set_title('Ridge Regression Coefficients')
+# plt.show()
