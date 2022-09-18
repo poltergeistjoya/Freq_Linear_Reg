@@ -13,6 +13,7 @@ df = pd.read_csv('prostatedata.txt', delimiter = "\t")
 df.insert(0, 'intercept', 1)
 
 # Separate into inputs and outputs 
+X_features = pd.DataFrame(df, columns = ['lcavol','lweight','age','lbph','svi','lcp','gleason','pgg45'])
 X = pd.DataFrame(df, columns = ['intercept', 'lcavol','lweight','age','lbph','svi','lcp','gleason','pgg45'])
 y = pd.DataFrame(df, columns = ['lpsa'])
 
@@ -32,6 +33,8 @@ test_y = test_y.to_numpy()
 
 #Functions 
 
+# Might combine all of them together for plain linear regression...
+
 # Find betas (weights)
 def train_data(X, y):
   beta_hat = np.linalg.inv(X.T @ X) @ X.T @ y # eq 3.6
@@ -45,7 +48,7 @@ def test_data(X, beta_hat):
 # Get MSE (mean squared error)
 def get_MSE(y, y_hat):
   diff_y = np.square(y-y_hat)
-  mse = (np.sum(diff_y))/len(y)
+  mse = (np.sum(diff_y))/len(y) 
   return mse 
 
 # Estimate var_hat 
@@ -56,7 +59,7 @@ def est_var_hat(y, y_hat, X):
 
 # Get standard errors
 def get_std_errors(var_hat, diag_vals): 
-   std_errs = var_hat * np.sqrt(diag_vals)
+   std_errs = np.sqrt(var_hat) * np.sqrt(diag_vals) # eq 3.12
    return std_errs
 
 # Get Z-scores 
@@ -69,7 +72,6 @@ def get_z_scores(beta_hat, std_errs):
 #1) Linear regression 
 
 beta_hat = train_data(train_x, train_y)
-print(beta_hat)
 y_hat = test_data(test_x, beta_hat)
 mse = get_MSE(test_y, y_hat)
 
@@ -77,35 +79,38 @@ print("Mean squared error: ", mse)
 
 # Get correlation coefficients
 
-corr_coeffs = np.corrcoef(X_features); 
+corr_coeffs = np.corrcoef(X_features.T); 
 
-# note: insert table 3.1 with correlations 
+# Table 3.1 with correlations 
 
-# note: insert table 3.2 with beta_hat, std_errs, z_scores 
+table1_data = {' ': ['lweight', 'age', 'lbph', 'svi', 'lcp', 'gleason', 'pgg45'],\
+     'lcavol': [corr_coeffs[0,1], corr_coeffs[0,2], corr_coeffs[0,3], corr_coeffs[0,4], corr_coeffs[0,5], corr_coeffs[0,6], corr_coeffs[0,7]],\
+     'lweight': [' ', corr_coeffs[1,2], corr_coeffs[1,3], corr_coeffs[1,4], corr_coeffs[1,5], corr_coeffs[1,6], corr_coeffs[1,7]],\
+     'age': [' ', ' ', corr_coeffs[2,3], corr_coeffs[2,4], corr_coeffs[2,5], corr_coeffs[2,6], corr_coeffs[2,7]],\
+     'lbph': [' ', ' ', ' ', corr_coeffs[3,4], corr_coeffs[3,5], corr_coeffs[3,6], corr_coeffs[3,7]],\
+     'svi': [' ', ' ', ' ', ' ', corr_coeffs[4,5], corr_coeffs[4,6], corr_coeffs[4,7]],\
+     'lcp': [' ', ' ', ' ', ' ', ' ', corr_coeffs[5,6], corr_coeffs[5,7]],\
+     'gleason': [' ', ' ', ' ', ' ', ' ', ' ', corr_coeffs[6,7]]\
+     }
 
-# Replicate the analysis from chapter 3 of this dataset. Divide your data into roughly 80% train, 10% validation, 
-# 10% test. You must keep this split for all 3 parts of this assignment in order to compare the methods fairly. 
-# Replicate the textbooks analysis of this dataset. by doing the following
+table1 = pd.DataFrame(data=table1_data)
+table1
 
-# a) Plain old linear regression, with no regularization. You must code this one by hand 
-# (i.e use equation 3.6 to find the betas). Report the mean squared error on the test dataset. Replicate tables 3.1 
-# and 3.2. You will not need the validation set for this part of the assigment.
+# Std errors and Z scores
 
-# b) Ridge regression. You must also code this one by hand(eq 3.44 to find the betas). Select the optimal value of Lambda 
-# by cross-validation using the validation dataset. Report the mean squared error on the test dataset, using the best 
-# lambda you found on the validation set. DO NOT USE THE TEST DATASET TO CHOOSE LAMBDA. Plot a ridge plot similar to 
-# figure 3.8, but you can just sweep the lambda parameter (you don't have to scale it to degrees of freedom).
+# do we use train or test for this? 
+var_hat = est_var_hat(train_y, y_hat, train_x) 
+diag_vals = np.diagonal(np.linalg.inv(train_x.T @ train_x))
+std_errs = get_std_errors(var_hat, diag_vals)
+z_scores = get_z_scores(beta_hat, std_errs) 
 
-# c) Lasso regression: Use the built in packages in sci-kit learn or MATLAB to do a Lasso regression. Select the optimal 
-# value of lambda as in part b) and also display a Lasso plot similar to figure 3.10, but again you can just sweep the 
-# lambda parameter.
+# Table 3.2 with beta_hat, std_errs, z_scores
 
-# Next, download a dataset suitable for linear regression from UCI or another repository. For now, this should be a dataset 
-# that only has numerical features, with no missing values. Repeat the analysis above on this dataset.
+table2_data = {'Term': ['intercept', 'lcavol', 'lweight', 'age', 'lbph', 'svi', 'lcp', 'gleason', 'pgg45'],\
+      'Coefficient': [beta_hat[0], beta_hat[1], beta_hat[2], beta_hat[3], beta_hat[4], beta_hat[5], beta_hat[6], beta_hat[7], beta_hat[8]],\
+      'Std. Error': [std_errs[0], std_errs[1], std_errs[2], std_errs[3], std_errs[4], std_errs[5], std_errs[6], std_errs[7], std_errs[8]],\
+      'Z Score': [z_scores[0], z_scores[1], z_scores[2], z_scores[3], z_scores[4], z_scores[5], z_scores[6], z_scores[7], z_scores[8]]\
+     }
 
-# Which features did the Lasso select for you to include in your model? Do these features make sense? Compute the
-#  MSE on the training dataset and the test dataset for all methods and comment on the results. Compare this MSE to a 
-# baseline MSE.
-
-# Stretch goal (2 points): Add nonlinear and interaction terms to your dataset and try to improve the performance. 
-# Are you able to do so?
+table2 = pd.DataFrame(data=table2_data)
+table2
